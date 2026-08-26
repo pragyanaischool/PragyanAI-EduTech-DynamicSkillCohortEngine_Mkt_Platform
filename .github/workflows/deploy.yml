@@ -1,0 +1,49 @@
+name: PragyanAI Platform Deployment
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    name: Build Docker Image & Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Authenticate to Google Cloud
+        if: ${{ env.GCP_SA_KEY != '' }}
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Configure Docker for GCP Artifact Registry
+        if: ${{ env.GCP_SA_KEY != '' }}
+        run: |
+          gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+
+      - name: Build Docker Container
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: pragyanai-demandx:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy to Cloud Run / Remote Host
+        if: ${{ env.GCP_SA_KEY != '' }}
+        run: |
+          echo "Triggering deployment for PragyanAI DemandX to target environment..."
+          # Example Cloud Run deploy step:
+          # gcloud run deploy pragyanai-demandx \
+          #   --image us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/apps/pragyanai-demandx:latest \
+          #   --platform managed \
+          #   --region us-central1 \
+          #   --allow-unauthenticated
