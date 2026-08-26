@@ -1,23 +1,18 @@
 """
 Database configuration and SQLite schema definitions for PragyanAI DemandX.
-Updated to dynamically load paths via config.settings (st.secrets).
+Updated with EOI tracking and payment exception fields.
 """
+
 import os
 import sqlite3
 from typing import Optional
 from config.settings import settings
 
-def get_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
-    """
-    Establishes and returns a SQLite connection with Row factory enabled
-    using the path configured in st.secrets.
-    """
-    target_path = db_path or settings.DATABASE_PATH
 
-    # In-memory database check for unit tests
+def get_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
+    target_path = db_path or settings.DATABASE_PATH
     if target_path != ":memory:":
         os.makedirs(os.path.dirname(os.path.abspath(target_path)), exist_ok=True)
-
     conn = sqlite3.connect(target_path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
@@ -25,13 +20,10 @@ def get_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
 
 
 def init_db(db_path: Optional[str] = None) -> None:
-    """
-    Initializes the SQLite database schema across all platform operational entities.
-    """
     conn = get_connection(db_path)
     cursor = conn.cursor()
 
-    # 1. USERS & RBAC TABLE
+    # 1. Users & RBAC
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,7 +39,7 @@ def init_db(db_path: Optional[str] = None) -> None:
     );
     """)
 
-    # 2. EXPERT PROFILES
+    # 2. Expert Profiles
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS expert_profiles (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -65,7 +57,7 @@ def init_db(db_path: Optional[str] = None) -> None:
     );
     """)
 
-    # 3. STUDENT DEMAND POOL
+    # 3. Student Demand Pool
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS student_demands (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -81,7 +73,7 @@ def init_db(db_path: Optional[str] = None) -> None:
     );
     """)
 
-    # 4. INSTITUTIONAL REQUESTS
+    # 4. Institutional Requests
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS institutional_requests (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -102,7 +94,7 @@ def init_db(db_path: Optional[str] = None) -> None:
     );
     """)
 
-    # 5. COMPILED PROGRAMS / LIVE COHORTS
+    # 5. Compiled Programs / Live Cohorts
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS compiled_programs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -125,7 +117,7 @@ def init_db(db_path: Optional[str] = None) -> None:
     );
     """)
 
-    # 6. DIRECT PAYMENT RECORDS
+    # 6. Direct Payment Records
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS payment_records (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -142,7 +134,22 @@ def init_db(db_path: Optional[str] = None) -> None:
     );
     """)
 
-    # 7. PROGRAM ENROLLMENTS
+    # 7. Expressions of Interest (EOI)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS cohort_expressions_of_interest (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        program_id INTEGER NOT NULL,
+        student_id INTEGER NOT NULL,
+        willing_budget_inr REAL NOT NULL,
+        preferred_slot TEXT DEFAULT 'Weekend',
+        expressed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (program_id) REFERENCES compiled_programs(id) ON DELETE CASCADE,
+        FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE(program_id, student_id)
+    );
+    """)
+
+    # 8. Program Enrollments
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS program_enrollments (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -156,7 +163,7 @@ def init_db(db_path: Optional[str] = None) -> None:
     );
     """)
 
-    # 8. BIDS & COUNTER-PROPOSALS
+    # 9. Bids
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS bids (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -173,7 +180,7 @@ def init_db(db_path: Optional[str] = None) -> None:
     );
     """)
 
-    # 9. FEEDBACK & CERTIFICATES
+    # 10. Feedback & Certificates
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS feedback_and_certs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -194,4 +201,3 @@ def init_db(db_path: Optional[str] = None) -> None:
 
 if __name__ == "__main__":
     init_db()
-    print("Database successfully initialized using settings via st.secrets.")
