@@ -1,0 +1,46 @@
+# --- Core UI & Visualization ---
+streamlit
+plotly
+pyvis
+networkx
+# --- Groq & LangChain Ecosystem ---
+groq
+langchain
+langchain-core
+langchain-community
+langchain-groq
+langchain-text-splitters
+langchain-huggingface
+
+# --- Local Vector DB & Embeddings ---
+faiss-cpu
+sentence-transformers
+transformers
+tiktoken
+
+# --- Document Ingestion & Parsers ---
+pypdf
+pdfplumber
+python-docx
+python-pptx
+
+# --- Live Web Search Grounding ---
+duckduckgo-search
+ddgs
+beautifulsoup4
+requests
+
+# --- Data Handling & Export Engines ---
+pydantic
+pandas
+numpy
+reportlab
+openpyxl
+torchvision
+bcrypt
+pytest
+pytest-mock
+pytest-cov
+flake8
+black
+isort
